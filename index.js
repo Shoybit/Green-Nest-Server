@@ -74,6 +74,24 @@ async function run() {
       }
     });
 
+    // DELETE booking by id
+app.delete("/bookings/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await bookingCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 1) {
+      res.send({ message: "Booking deleted successfully" });
+    } else {
+      res.status(404).send({ error: "Booking not found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: "Internal server error" });
+  }
+});
+
+
   
     // Get all bookings 
   
