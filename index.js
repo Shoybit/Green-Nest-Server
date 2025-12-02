@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
@@ -10,10 +9,8 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-//  MongoDB URI 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lnfp781.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// MongoClient
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -26,20 +23,70 @@ async function run() {
   try {
     await client.connect();
 
-    // test connection
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
 
     // Collections
     const plantCollection = client.db("greenNest-db").collection("plants");
+    const bookingCollection = client.db("greenNest-db").collection("bookings"); // ⭐ NEW
 
+  
     // GET all plants
+    
     app.get("/plants", async (req, res) => {
       const result = await plantCollection.find().toArray();
       res.send(result);
     });
 
-    // Start Server 
+    
+    // GET single plant by ID
+ 
+    app.get("/plants/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const plant = await plantCollection.findOne({ _id: new ObjectId(id) });
+        plant ? res.send(plant) : res.status(404).send({ error: "Plant not found" });
+      } catch (error) {
+        res.status(500).send({ error: "Internal server error" });
+      }
+    });
+
+    
+    //Save booking
+    
+    app.post("/bookings", async (req, res) => {
+      try {
+        const newBooking = req.body;
+
+        const result = await bookingCollection.insertOne(newBooking);
+
+        res.send({
+          success: true,
+          message: "Booking saved successfully!",
+          data: result,
+        });
+      } catch (error) {
+        console.log("Booking save error:", error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to save booking.",
+        });
+      }
+    });
+
+  
+    // Get all bookings 
+  
+    app.get("/bookings", async (req, res) => {
+      try {
+        const result = await bookingCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ success: false, message: "Failed to fetch bookings." });
+      }
+    });
+
+    // Start Server
     app.listen(port, () => {
       console.log("Server running on port", port);
     });
